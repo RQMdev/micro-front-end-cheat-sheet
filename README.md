@@ -5,22 +5,24 @@ Import an application :
 define a reactModule :
 
 ```javascript
+// config.js
 export const reactModule = {
-  id: "react-app",
-  url: "http://localhost:3000",
+  id: 'react-app',
+  url: 'http://localhost:3000',
   scripts: [
-    "/static/js/runtime-main.js",
-    "/static/js/main.chunk.js",
-    "/static/js/2.chunk.js"
+    '/static/js/runtime-main.js',
+    '/static/js/main.chunk.js',
+    '/static/js/2.chunk.js'
   ],
-  styles: ["/static/css/main.chunk.css"]
-};
+  styles: ['/static/css/main.chunk.css']
+}
 ```
 
 import it in page.js :
 
 ```javascript
-import { reactModule } from "../config";
+// page.js
+import { reactModule } from '../config'
 ```
 
 define a page component that will be the anchor for the coming app :
@@ -44,6 +46,7 @@ DEMO: the div with ID
 create the promiseSerial helper :
 
 ```javascript
+// page.js
 promiseSerial(funcs, init) {
   return funcs.reduce(
     (promise, func) => promise.then(func),
@@ -55,6 +58,7 @@ promiseSerial(funcs, init) {
 create the loadScript method :
 
 ```javascript
+// page.js
 loadScripts(scripts) {
   return this.promiseSerial(
     scripts.map(scriptPath => () =>
@@ -80,9 +84,10 @@ loadScripts(scripts) {
 add it into the connectedCallback() :
 
 ```javascript
+// page.js
 this.loadScripts(
   reactModule.scripts.map(scriptPath => reactModule.url + scriptPath)
-);
+)
 ```
 
 DEMO: the cat is here ! but not the app style !!
@@ -90,6 +95,7 @@ DEMO: the cat is here ! but not the app style !!
 add loadStyles method :
 
 ```javascript
+// page.js
 loadStyles(styles) {
   return this.promiseSerial(
     styles.map(stylePath => () =>
@@ -114,14 +120,106 @@ loadStyles(styles) {
 call it from connectedCallback :
 
 ```javascript
+// router.js
 this.loadStyles(
   reactModule.styles.map(stylePath => reactModule.url + stylePath)
-);
+)
 ```
 
 DEMO: The cat is now stylish :D
 
 ## Save : react-imported
+
+But i wanna go to the other page of my final application !
+let's define our other modules :
+
+```javascript
+// config.js
+const angularModule = {
+  tag: 'app-root',
+  url: 'http://localhost:4200',
+  scripts: [
+    '/main-es2015.js',
+    '/polyfills-es2015.js',
+    '/runtime-es2015.js',
+    '/styles-es2015.js',
+    '/vendor-es2015.js'
+  ],
+  styles: []
+}
+
+const vueModule = {
+  id: 'vue-app',
+  url: 'http://localhost:8080',
+  scripts: ['/js/app.js', '/js/chunk-vendors.js'],
+  styles: ['/css/app.css']
+}
+```
+
+let's introduce some route, that we will match with the modules!
+
+```javascript
+// config.js
+export const routes = [
+  {
+    path: '/',
+    exact: true,
+    module: reactModule
+  },
+  {
+    path: '/chien',
+    title: 'Chien',
+    module: angularModule
+  },
+  {
+    path: '/chat',
+    title: 'Chat',
+    module: reactModule
+  },
+  {
+    path: '/canard',
+    title: 'Canard',
+    module: vueModule
+  }
+]
+```
+
+Now that we only export routes: let's refactor our page :
+
+```javascript
+// page.js
+import { routes } from '../config'
+
+// connectedCallback()
+const appModule = routes.find(route =>
+  route.exact
+    ? route.path === location.pathname
+    : location.pathname.startsWith(route.path)
+).module
+```
+
+!! Rename all reactModule to appModule
+
+DEMO: Now we can go the each URL to see each module !!!
+React: Good,
+Vue: Good,
+Angular ... failed ! 'cause it doesn't anchor to a div with an id ! but to a tag !
+let's refactor our createElementFromID method :
+
+```javascript
+createElementFromID(appModule) {
+    let root = null
+    if (appModule.tag) {
+      root = document.createElement(appModule.tag)
+    } else {
+      root = document.createElement('div')
+      root.id = appModule.id
+    }
+    return root
+  }
+```
+
+Let's make a navigation components !
 
 ## Master
 
@@ -132,13 +230,13 @@ Add event listener on click to catch main navigation event
 ```javascript
 // router.js
 // connectedCallback()
-this.addEventListener("click", event => {
-  const href = this.getLinkHref(event.target);
+this.addEventListener('click', event => {
+  const href = this.getLinkHref(event.target)
   if (href) {
-    const { pathname } = new URL(href, location.origin);
-    this.resolveRoute(pathname, event);
+    const { pathname } = new URL(href, location.origin)
+    this.resolveRoute(pathname, event)
   }
-});
+})
 ```
 
 add getLinkHref method to find 'A' link in the DOM
@@ -182,15 +280,15 @@ fixe React behaviour:
 a) Create navbar to navigate easily from our config:
 
 ```javascript
-import { routes } from "../config";
+import { routes } from '../config'
 
 export default class ContainerNavbar extends HTMLElement {
   constructor() {
-    super();
+    super()
   }
 
   static get tagName() {
-    return "container-navbar";
+    return 'container-navbar'
   }
 
   render() {
@@ -209,14 +307,14 @@ export default class ContainerNavbar extends HTMLElement {
             </li>
           `
         )
-        .join("")}
+        .join('')}
       </ul>
     </nav>
-  `;
+  `
   }
 
   connectedCallback() {
-    this.render();
+    this.render()
   }
 }
 ```
@@ -226,18 +324,18 @@ b) and the sub component link :
 ```javascript
 export default class ContainerLink extends HTMLElement {
   constructor() {
-    super();
+    super()
   }
 
   static get tagName() {
-    return "container-link";
+    return 'container-link'
   }
 
   connectedCallback() {
-    this.path = this.getAttribute("path");
-    this.title = this.getAttribute("title");
+    this.path = this.getAttribute('path')
+    this.title = this.getAttribute('title')
 
-    this.render();
+    this.render()
   }
 
   render() {
@@ -245,7 +343,7 @@ export default class ContainerLink extends HTMLElement {
       <a href="${this.path}">
         ${this.title}
       </a>
-    `;
+    `
   }
 }
 ```
@@ -253,8 +351,8 @@ export default class ContainerLink extends HTMLElement {
 c) and import them in component/index.js
 
 ```javascript
-export { default as ContainerLink } from "./link";
-export { default as ContainerNavbar } from "./navbar";
+export { default as ContainerLink } from './link'
+export { default as ContainerNavbar } from './navbar'
 ```
 
 d) place them in the app component :
