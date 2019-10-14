@@ -1,3 +1,128 @@
+## Blank Sheet
+
+Import an application :
+
+define a reactModule :
+
+```javascript
+export const reactModule = {
+  id: "react-app",
+  url: "http://localhost:3000",
+  scripts: [
+    "/static/js/runtime-main.js",
+    "/static/js/main.chunk.js",
+    "/static/js/2.chunk.js"
+  ],
+  styles: ["/static/css/main.chunk.css"]
+};
+```
+
+import it in page.js :
+
+```javascript
+import { reactModule } from "../config";
+```
+
+define a page component that will be the anchor for the coming app :
+create the root anchor :
+
+```javascript
+// connectedCallback()
+const frameworkRoot = this.createElementFromID(reactModule)
+this.appendChild(frameworkRoot)
+
+// method:
+createElementFromID(appModule) {
+  const root = document.createElement('div')
+  root.id = appModule.id
+  return root
+}
+```
+
+DEMO: the div with ID
+
+create the promiseSerial helper :
+
+```javascript
+promiseSerial(funcs, init) {
+  return funcs.reduce(
+    (promise, func) => promise.then(func),
+    Promise.resolve(init)
+  )
+}
+```
+
+create the loadScript method :
+
+```javascript
+loadScripts(scripts) {
+  return this.promiseSerial(
+    scripts.map(scriptPath => () =>
+      new Promise((resolve, reject) => {
+        const previousScript = document.getElementById(scriptPath)
+        if (previousScript) {
+          previousScript.remove()
+        }
+        const script = document.createElement('script')
+        script.src = scriptPath
+        script.id = scriptPath
+        script.defer = true
+        script.type = 'text/javascript'
+        script.onload = resolve
+        script.onerror = reject
+        document.body.appendChild(script)
+      })
+    )
+  )
+}
+```
+
+add it into the connectedCallback() :
+
+```javascript
+this.loadScripts(
+  reactModule.scripts.map(scriptPath => reactModule.url + scriptPath)
+);
+```
+
+DEMO: the cat is here ! but not the app style !!
+
+add loadStyles method :
+
+```javascript
+loadStyles(styles) {
+  return this.promiseSerial(
+    styles.map(stylePath => () =>
+      new Promise((resolve, reject) => {
+        const previousStyle = document.getElementById(stylePath)
+        if (previousStyle) {
+          previousStyle.remove()
+        }
+        const style = document.createElement('link')
+        style.href = stylePath
+        style.id = stylePath
+        style.rel = 'stylesheet'
+        style.onload = resolve
+        style.onerror = reject
+        document.head.appendChild(style)
+      })
+    )
+  )
+}
+```
+
+call it from connectedCallback :
+
+```javascript
+this.loadStyles(
+  reactModule.styles.map(stylePath => reactModule.url + stylePath)
+);
+```
+
+DEMO: The cat is now stylish :D
+
+## Save : react-imported
+
 ## Master
 
 ### fixes main navigation reloading app :
