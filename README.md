@@ -219,65 +219,9 @@ createElementFromID(appModule) {
   }
 ```
 
+## Save all-application-on-board
+
 Let's make a navigation components !
-
-## Master
-
-### fixes main navigation reloading app :
-
-Add event listener on click to catch main navigation event
-
-```javascript
-// router.js
-// connectedCallback()
-this.addEventListener('click', event => {
-  const href = this.getLinkHref(event.target)
-  if (href) {
-    const { pathname } = new URL(href, location.origin)
-    this.resolveRoute(pathname, event)
-  }
-})
-```
-
-add getLinkHref method to find 'A' link in the DOM
-
-```javascript
-getLinkHref(element) {
-    if (element.tagName === 'A') {
-      return element.href || ''
-    } else if (element.tagName !== 'BODY') {
-      return this.getLinkHref(element.parentElement)
-    } else {
-      return undefined
-    }
-  }
-```
-
-compare full current full path to new path
-
-```javascript
-// router.js
-renderRoute(targetRoute, event, path) {
-  // ...
-  this.currentPath = path
-    } else if (path === this.currentPath) {
-      event.preventDefault()
-  // ...
-}
-```
-
-fixe React behaviour:
-
-```javascript
-// router.js
-// renderRoute
-} else if (targetRoute.path.startsWith(this.currentRoute.path)) {
-      // react-router check if event was preventDefault and don't do anything if it is
-```
-
-## Step 1
-
-a) Create navbar to navigate easily from our config:
 
 ```javascript
 import { routes } from '../config'
@@ -363,5 +307,71 @@ d) place them in the app component :
 
   </div>
 ```
+
+## Save navigation-done
+
+And TADA !! We are done ! we got a complete app where we can navigate to different pages that are from different framework and that are exposed in different place...
+
+but...
+
+The page reloads !!!
+
+## Master
+
+### fixes main navigation reloading app :
+
+Add event listener on click to catch main navigation event
+
+```javascript
+// router.js
+// connectedCallback()
+this.addEventListener('click', event => {
+  const href = this.getLinkHref(event.target)
+  if (href) {
+    const { pathname } = new URL(href, location.origin)
+    this.resolveRoute(pathname, event)
+  }
+})
+```
+
+add getLinkHref method to find 'A' link in the DOM
+
+```javascript
+getLinkHref(element) {
+    if (element.tagName === 'A') {
+      return element.href || ''
+    } else if (element.tagName !== 'BODY') {
+      return this.getLinkHref(element.parentElement)
+    } else {
+      return undefined
+    }
+  }
+```
+
+compare full current full path to new path
+
+```javascript
+// router.js
+renderRoute(targetRoute, event, path) {
+  // ...
+  this.currentPath = path
+    } else if (path === this.currentPath) {
+      event.preventDefault()
+  // ...
+}
+```
+
+fixe React behaviour:
+
+```javascript
+// router.js
+// renderRoute
+} else if (targetRoute.path.startsWith(this.currentRoute.path)) {
+      // react-router check if event was preventDefault and don't do anything if it is
+```
+
+## Step 1
+
+a) Create navbar to navigate easily from our config:
 
 ## Step 2
