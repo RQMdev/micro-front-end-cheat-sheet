@@ -316,28 +316,108 @@ but...
 
 The page reloads !!!
 
-## Master
+Let's add a router to handle that and not reload all the html :
 
-### fixes main navigation reloading app :
+first add router component to our app :
 
-Add event listener on click to catch main navigation event
+```javascript
+// app.js
+connectedCallback() {
+  this.innerHTML = `
+    <container-router>
+      <container-navbar></container-navbar>
+      <div id="app-container">
+        <router-outlet></router-outlet>
+      </div>
+    </container-router>
+  `
+}
+```
+
+then create the router comp :
+
+```javascript
+export default class ContainerRouter extends HTMLElement {
+  constructor() {
+    super()
+  }
+
+  static get tagName() {
+    return 'container-router'
+  }
+
+  connectedCallback() {
+     this.addEventListener('click', event => {
+      event.preventDefault()
+     }
+  }
+}
+```
+
+export it in component/index.js
+
+```javascript
+export { default as ContainerRouter } from './router'
+```
+
+create the resolveRoute method:
 
 ```javascript
 // router.js
+import { routes } from '../config'
+
 // connectedCallback()
-this.addEventListener('click', event => {
+  this.resolveRoute(location.pathname)
+
+// resolveRoute
+resolveRoute(path) {
+        console.log('resolveRoute with path :', path)
+        const targetRoute = this.findRoute(path)
+        console.log('targetRoute', targetRoute)
+        if (!targetRoute) {
+          this.resolveRoute('/')
+        }
+
+   // render Route here
+  }
+
+  findRoute(path) {
+    return routes.find(route =>
+      route.exact ? route.path === path : path.startsWith(route.path)
+    )
+  }
+```
+
+DEMO: Console log finding the correct path and finding the targeted Route
+
+```javascript
+//router.js
+
+// resolveRoute
+this.renderRoute()
+
+// renderRoute
+renderRoute() {
+  const routerOutlet = this.querySelector('router-outlet')
+  routerOutlet.innerHTML = '<container-page></container-page>'
+}
+```
+
+DEMO: We have our module back ! But the link still don't work ;)
+
+Let make our click listener do the job:
+
+```javascript
+//router.js
+// click listener
   const href = this.getLinkHref(event.target)
   if (href) {
     const { pathname } = new URL(href, location.origin)
     this.resolveRoute(pathname, event)
   }
-})
-```
 
-add getLinkHref method to find 'A' link in the DOM
-
-```javascript
-getLinkHref(element) {
+// getLinkHref
+  getLinkHref(element) {
     if (element.tagName === 'A') {
       return element.href || ''
     } else if (element.tagName !== 'BODY') {
@@ -348,30 +428,80 @@ getLinkHref(element) {
   }
 ```
 
-compare full current full path to new path
+Since we are not prevenDefaulting here, let's pass the event to the render route to do it there !
 
 ```javascript
-// router.js
-renderRoute(targetRoute, event, path) {
-  // ...
-  this.currentPath = path
-    } else if (path === this.currentPath) {
-      event.preventDefault()
-  // ...
+// resolveRoute
+  resolveRoute(path, event = new Event('click')) {
+    // ...
+    this.renderRoute(event)
+  }
+
+// renderRoute
+  renderRoute(event) {
+    event.preventDefault()
+    // ...
+  }
+```
+
+DEMO: Now we can click and it re-render the page component : But it's always the same module because the url didn't change !
+Let's fix that:
+
+```javascript
+// resolveRoute
+  this.changePage(path)
+
+ // changePage method
+  changePage(path) {
+    window.history.pushState(window.history.state, null, path)
+  }
+```
+
+We can now navigate without the page reloading completely (see the log staying there !!)
+But we have our page blinking even when we are staying on the same app !
+
+We need a new fix :
+We need to compare old module to new one, so let's pass targetRoute to our renderRoute method
+
+```javascript
+// resolveRoute:
+  this.renderRoute(targetRoute, event)
+
+// renderRoute:
+renderRoute(targetRoute, event) {
+  event.preventDefault()
+  if (this.currentRoute !== targetRoute) {
+    const routerOutlet = this.querySelector('router-outlet')
+    routerOutlet.innerHTML = '<container-page></container-page>'
+    this.currentRoute = targetRoute
+  }
 }
 ```
 
-fixe React behaviour:
+We still have a last problem : the react link not working anymore !
+We have to be more precise when event.preventDefault because it's breaking react behaviour
+let's pass the path to renderRoute:
 
 ```javascript
-// router.js
-// renderRoute
-} else if (targetRoute.path.startsWith(this.currentRoute.path)) {
-      // react-router check if event was preventDefault and don't do anything if it is
+//resolveRoute
+this.renderRoute(targetRoute, event, path)
+
+// renderRoute:
+renderRoute(targetRoute, event, path) {
+  if (
+    this.currentRoute &&
+    !targetRoute.path.startsWith(this.currentRoute.path)
+  ) {
+    event.preventDefault()
+  }
+
+  if (this.currentRoute !== targetRoute) {
+    const routerOutlet = this.querySelector('router-outlet')
+    routerOutlet.innerHTML = '<container-page></container-page>'
+    this.currentRoute = targetRoute
+    this.currentPath = path
+  }
+}
 ```
 
-## Step 1
-
-a) Create navbar to navigate easily from our config:
-
-## Step 2
+And that's it ;)
